@@ -2,6 +2,8 @@
 
 A single-file, self-contained budget planner that runs entirely in the browser. No server, no account, no install. Just open the HTML file and start budgeting.
 
+**[Try it live →](https://unplannedev.github.io/offline-budget-planner/budget_planner_template.html)**
+
 ![Budget Planner screenshot](screenshot.png)
 
 ## Features
