@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Planner — Needs vs Wants</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #f2f1ed;
+  color: #2c2c2a;
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+/* ── Topbar ─────────────────────────────────────────── */
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid #e5e4e0;
+  padding: 10px 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.topbar h1 { font-size: 15px; font-weight: 600; flex-shrink: 0; margin-right: 4px; }
+
+.income-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.income-field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #f9f8f5;
+  border: 1px solid #e5e4e0;
+  border-radius: 7px;
+  padding: 4px 10px;
+}
+
+.income-field label { font-size: 11px; color: #aaa; white-space: nowrap; }
+
+.income-field input {
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  outline: none;
+  text-align: right;
+  color: #2c2c2a;
+}
+
+.income-field input.income-num { width: 88px; }
+.income-field input.currency-code { width: 44px; text-align: center; font-size: 12px; font-weight: 600; color: #888; }
+
+.income-sep { font-size: 16px; color: #ccc; font-weight: 300; }
+
+.income-total { font-size: 13px; color: #555; white-space: nowrap; }
+.income-total strong { font-weight: 700; color: #2c2c2a; }
+
+.month-badge {
+  font-size: 11px; color: #aaa; padding: 4px 9px;
+  background: #f2f1ed; border-radius: 20px; white-space: nowrap;
+}
+
+.btn-csv {
+  font-size: 12px; font-weight: 500; padding: 5px 11px;
+  border-radius: 6px; cursor: pointer; white-space: nowrap; transition: background 0.1s;
+}
+.btn-export { background:#fff; color:#534AB7; border:1px solid #534AB7; }
+.btn-export:hover { background:#f0effe; }
+.btn-import { background:#fff; color:#555; border:1px solid #ddd; display:inline-flex; align-items:center; }
+.btn-import:hover { background:#f5f4f0; }
+
+/* ── Container ───────────────────────────────────────── */
+.container { max-width: 980px; margin: 0 auto; padding: 1.25rem 1.5rem; }
+
+/* ── Welcome banner (shown only when empty) ─────────── */
+.welcome {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e8e7e3;
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.25rem;
+  display: none;
+}
+.welcome h2 { font-size: 16px; font-weight: 600; margin-bottom: 0.5rem; }
+.welcome p  { font-size: 13px; color: #777; line-height: 1.6; margin-bottom: 0.5rem; }
+.welcome ol { font-size: 13px; color: #555; line-height: 2; padding-left: 1.2rem; }
+.welcome.visible { display: block; }
+
+/* ── Summary cards ───────────────────────────────────── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+
+.card { background:#fff; border-radius:10px; border:1px solid #e8e7e3; padding:12px 14px; }
+.card-label { font-size:11px; color:#aaa; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
+.card-value { font-size:20px; font-weight:700; line-height:1.1; }
+.card-sub { font-size:11px; color:#aaa; margin-top:3px; }
+
+/* ── Main grid ───────────────────────────────────────── */
+.main { display:grid; grid-template-columns:220px 1fr; gap:1.25rem; align-items:start; }
+
+/* ── Chart panel ─────────────────────────────────────── */
+.chart-panel {
+  background:#fff; border-radius:10px; border:1px solid #e8e7e3;
+  padding:1.1rem; position:sticky; top:4.5rem;
+}
+
+.chart-wrap { position:relative; width:100%; height:185px; margin-bottom:0.9rem; }
+
+.chart-center {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center; pointer-events:none; white-space:nowrap;
+}
+.chart-big { font-size:19px; font-weight:700; }
+.chart-small { font-size:11px; color:#aaa; }
+
+.legend { margin-bottom:0.9rem; }
+.legend-row {
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:12px; color:#555; padding:4px 0; border-bottom:1px solid #f2f1ed;
+}
+.legend-row:last-child { border-bottom:none; }
+.legend-left { display:flex; align-items:center; gap:7px; }
+.legend-dot { width:9px; height:9px; border-radius:2px; flex-shrink:0; }
+.legend-val { font-weight:700; font-size:12px; }
+
+.targets { background:#f9f8f5; border-radius:8px; padding:9px 11px; margin-bottom:9px; }
+.targets-title { font-size:10px; color:#aaa; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
+.target-row { display:flex; justify-content:space-between; font-size:11px; color:#777; padding:2px 0; }
+
+.rec { border-radius:8px; padding:9px 11px; font-size:12px; line-height:1.5; }
+
+/* ── Expense list panel ───────────────────────────────── */
+.list-panel { background:#fff; border-radius:10px; border:1px solid #e8e7e3; overflow:hidden; }
+
+.list-section-label {
+  font-size:10px; text-transform:uppercase; letter-spacing:0.05em;
+  padding:6px 16px 3px; color:#aaa; background:#fafaf8;
+  border-bottom:1px dashed #f0efe9;
+}
+
+.list-header {
+  display:grid; grid-template-columns:1fr 110px 120px 32px;
+  gap:8px; font-size:10px; color:#aaa; text-transform:uppercase;
+  letter-spacing:0.04em; padding:9px 16px;
+  background:#fafaf8; border-bottom:1px solid #e8e7e3;
+}
+
+.expense-row {
+  display:grid; grid-template-columns:1fr 110px 120px 32px;
+  gap:8px; align-items:center; padding:8px 16px;
+  border-bottom:1px solid #f5f4f0; transition:background 0.1s;
+}
+.expense-row:hover { background:#fafaf8; }
+.expense-row:last-child { border-bottom:none; }
+
+.item-name { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:text; }
+.item-name input { width:100%; font-size:13px; border:1px solid #534AB7; border-radius:4px; padding:2px 6px; outline:none; }
+.item-amount { font-size:13px; font-weight:600; text-align:right; cursor:text; }
+.item-amount input { width:100%; font-size:13px; font-weight:600; text-align:right; border:1px solid #534AB7; border-radius:4px; padding:2px 6px; outline:none; }
+
+.toggle { display:flex; border-radius:6px; overflow:hidden; border:1px solid #e0dfda; }
+.toggle button {
+  font-size:10px; font-weight:500; padding:4px 7px;
+  background:transparent; border:none; cursor:pointer; color:#bbb;
+  transition:background 0.1s, color 0.1s; line-height:1;
+}
+.toggle button.fixed { background:#378ADD; color:#fff; }
+.toggle button.need  { background:#1D9E75; color:#fff; }
+.toggle button.want  { background:#D85A30; color:#fff; }
+
+.del-btn {
+  width:26px; height:26px; display:flex; align-items:center; justify-content:center;
+  background:none; border:none; cursor:pointer; color:#ccc; font-size:17px;
+  border-radius:4px; transition:color 0.1s, background 0.1s; line-height:1;
+}
+.del-btn:hover { color:#E24B4A; background:#fff0f0; }
+
+.empty-state { text-align:center; padding:2.5rem 1rem; color:#ccc; font-size:13px; line-height:1.7; }
+.empty-state strong { color:#aaa; font-weight:500; }
+
+.add-form {
+  display:flex; gap:7px; padding:10px 14px;
+  border-top:1px solid #e8e7e3; background:#fafaf8;
+}
+.add-form input[type=text] {
+  flex:1; min-width:0; font-size:13px; padding:6px 9px;
+  border:1px solid #ddd; border-radius:6px; outline:none;
+}
+.add-form input[type=text]:focus { border-color:#534AB7; }
+.add-form input[type=number] {
+  width:88px; font-size:13px; padding:6px 9px;
+  border:1px solid #ddd; border-radius:6px; outline:none; text-align:right;
+}
+.add-form input[type=number]:focus { border-color:#534AB7; }
+.type-select {
+  font-size:12px; padding:6px 7px; border:1px solid #ddd;
+  border-radius:6px; background:#fff; cursor:pointer; outline:none; color:#2c2c2a;
+}
+.btn-add {
+  font-size:13px; font-weight:500; padding:6px 14px; background:#534AB7;
+  color:#fff; border:none; border-radius:6px; cursor:pointer;
+  transition:background 0.1s; white-space:nowrap;
+}
+.btn-add:hover { background:#3C3489; }
+
+.progress-section { padding:10px 14px; border-top:1px solid #e8e7e3; background:#fafaf8; }
+.progress-meta { display:flex; justify-content:space-between; font-size:11px; color:#aaa; margin-bottom:5px; }
+.progress-track { height:5px; background:#eee; border-radius:3px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:3px; transition:width 0.4s, background 0.3s; }
+
+.footer-row { display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding:0 2px; }
+.btn-clear { font-size:12px; color:#bbb; background:none; border:none; cursor:pointer; text-decoration:underline; }
+.btn-clear:hover { color:#E24B4A; }
+.save-status { font-size:11px; color:#1D9E75; }
+
+/* ── Section divider ─────────────────────────────────── */
+.section-divider { display:flex; align-items:center; gap:12px; margin:2rem 0 1rem; }
+.section-divider h2 { font-size:15px; font-weight:600; white-space:nowrap; }
+.section-divider-line { flex:1; height:1px; background:#e5e4e0; }
+.section-sub { font-size:12px; color:#aaa; }
+
+/* ── Loan tracker ────────────────────────────────────── */
+.loans-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:1rem; }
+
+.loan-card {
+  background:#fff; border-radius:10px; border:1px solid #e8e7e3;
+  padding:1rem 1.1rem; display:flex; flex-direction:column; gap:10px;
+}
+
+.loan-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.loan-name { font-size:14px; font-weight:600; cursor:text; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.loan-name input { width:100%; font-size:14px; font-weight:600; border:1px solid #534AB7; border-radius:4px; padding:2px 6px; outline:none; }
+
+.loan-balance-wrap { display:flex; align-items:baseline; gap:5px; }
+.loan-balance { font-size:22px; font-weight:700; }
+.loan-currency { font-size:12px; color:#aaa; }
+
+.loan-progress-track { height:7px; background:#eee; border-radius:4px; overflow:hidden; margin-bottom:4px; }
+.loan-progress-fill { height:100%; border-radius:4px; transition:width 0.5s, background 0.5s; }
+.loan-progress-labels { display:flex; justify-content:space-between; font-size:11px; color:#aaa; }
+
+.loan-meta { font-size:12px; color:#777; }
+
+.btn-update {
+  font-size:12px; font-weight:500; padding:5px 12px;
+  background:#fff; color:#534AB7; border:1px solid #534AB7;
+  border-radius:6px; cursor:pointer; transition:background 0.1s;
+}
+.btn-update:hover { background:#f0effe; }
+
+.loan-update-form {
+  display:none; gap:6px; align-items:center; flex-wrap:wrap;
+  background:#f9f8f5; border-radius:7px; padding:8px 10px;
+}
+.loan-update-form.visible { display:flex; }
+.loan-update-form label { font-size:12px; color:#777; white-space:nowrap; }
+.loan-update-form input {
+  flex:1; min-width:100px; font-size:13px; font-weight:600;
+  padding:5px 8px; border:1px solid #534AB7; border-radius:6px; outline:none; text-align:right;
+}
+.btn-save-balance { font-size:12px; font-weight:500; padding:5px 11px; background:#534AB7; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+.btn-cancel-balance { font-size:12px; padding:5px 9px; background:#fff; color:#777; border:1px solid #ddd; border-radius:6px; cursor:pointer; }
+
+.loan-history-toggle { font-size:11px; color:#aaa; cursor:pointer; text-decoration:underline; background:none; border:none; padding:0; }
+.loan-history-toggle:hover { color:#555; }
+.loan-history-table { margin-top:6px; width:100%; border-collapse:collapse; font-size:11px; }
+.loan-history-table th { color:#aaa; font-weight:500; text-align:left; padding:3px 0; border-bottom:1px solid #f0efe9; }
+.loan-history-table th:last-child { text-align:right; }
+.loan-history-table td { padding:4px 0; border-bottom:1px solid #f8f7f4; color:#555; }
+.loan-history-table td:last-child { text-align:right; font-weight:600; }
+.loan-delta-neg { color:#1D9E75; font-size:10px; }
+.loan-delta-pos { color:#E24B4A; font-size:10px; }
+
+.loans-empty { color:#bbb; font-size:13px; text-align:center; padding:1.5rem; }
+
+.add-loan-form {
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  background:#fff; border-radius:10px; border:1px solid #e8e7e3;
+  padding:12px 14px; margin-top:1rem;
+}
+.add-loan-form input { font-size:13px; padding:6px 9px; border:1px solid #ddd; border-radius:6px; outline:none; }
+.add-loan-form input:focus { border-color:#534AB7; }
+.add-loan-form input[type=text] { flex:2; min-width:130px; }
+.add-loan-form input[type=number] { flex:1; min-width:100px; text-align:right; }
+
+.hint { font-size:11px; color:#bbb; margin-top:6px; padding:0 2px; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 760px) {
+  .cards { grid-template-columns:repeat(3, 1fr); }
+  .main { grid-template-columns:1fr; }
+  .chart-panel { position:static; }
+  .income-group { flex-wrap:wrap; }
+}
+@media (max-width: 480px) {
+  .cards { grid-template-columns:repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <h1>Budget Planner</h1>
+
+  <div class="income-group">
+    <div class="income-field">
+      <label>Currency</label>
+      <input class="currency-code" type="text" id="currency-input" value="USD" maxlength="5" title="Type your currency code or symbol (USD, EUR, GBP, $, €...)" />
+    </div>
+    <div class="income-field">
+      <label>Stable income</label>
+      <input class="income-num" type="number" id="stable-input" value="0" min="0" step="100" placeholder="0" />
+    </div>
+    <span class="income-sep">+</span>
+    <div class="income-field">
+      <label>Freelance</label>
+      <input class="income-num" type="number" id="freelance-input" value="0" min="0" step="100" placeholder="0" />
+    </div>
+    <div class="income-total">= <strong id="total-disp">0</strong> <span style="font-size:11px;color:#aaa" id="total-curr">USD/mo</span></div>
+  </div>
+
+  <span class="month-badge" id="month-badge"></span>
+  <button class="btn-csv btn-export" onclick="exportCSV()">Export CSV</button>
+  <label class="btn-csv btn-import">
+    Import CSV
+    <input type="file" id="csv-file" accept=".csv,.txt" style="display:none" onchange="importCSV(this)" />
+  </label>
+</div>
+
+<!-- ══ MAIN CONTENT ════════════════════════════════════════════════════════ -->
+<div class="container">
+
+  <!-- Welcome banner — shown only when data is empty -->
+  <div class="welcome" id="welcome">
+    <h2>Welcome to Budget Planner</h2>
+    <p>Track where your money goes each month and stay on the path to financial goals. Here's how to get started:</p>
+    <ol>
+      <li>Set your <strong>currency</strong> and <strong>monthly income</strong> in the bar above</li>
+      <li>Add your <strong>fixed expenses</strong> (rent, subscriptions, loan payments)</li>
+      <li>Add <strong>needs</strong> (groceries, transport) and <strong>wants</strong> (dining out, entertainment)</li>
+      <li>Add your <strong>loans</strong> below and update balances monthly to track payoff progress</li>
+    </ol>
+    <p style="margin-top:0.75rem;font-size:12px">All data is saved automatically in your browser. Use <strong>Export CSV</strong> to back it up anytime.</p>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Fixed</div>
+      <div class="card-value" id="c-fixed" style="color:#378ADD">—</div>
+      <div class="card-sub" id="c-fixed-pct">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Needs</div>
+      <div class="card-value" id="c-needs" style="color:#1D9E75">—</div>
+      <div class="card-sub" id="c-needs-pct">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Wants</div>
+      <div class="card-value" id="c-wants" style="color:#D85A30">—</div>
+      <div class="card-sub" id="c-wants-pct">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Surplus</div>
+      <div class="card-value" id="c-surplus" style="color:#534AB7">—</div>
+      <div class="card-sub" id="c-surplus-pct">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total debt</div>
+      <div class="card-value" id="c-debt" style="color:#E24B4A">—</div>
+      <div class="card-sub" id="c-debt-sub">from loan tracker</div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main">
+
+    <!-- Chart panel -->
+    <div class="chart-panel">
+      <div class="chart-wrap">
+        <canvas id="myChart"></canvas>
+        <div class="chart-center">
+          <div class="chart-big" id="chart-pct">0%</div>
+          <div class="chart-small">of income used</div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-row">
+          <div class="legend-left"><div class="legend-dot" style="background:#378ADD"></div><span>Fixed</span></div>
+          <span class="legend-val" style="color:#378ADD" id="l-fixed">0%</span>
+        </div>
+        <div class="legend-row">
+          <div class="legend-left"><div class="legend-dot" style="background:#1D9E75"></div><span>Needs</span></div>
+          <span class="legend-val" style="color:#1D9E75" id="l-needs">0%</span>
+        </div>
+        <div class="legend-row">
+          <div class="legend-left"><div class="legend-dot" style="background:#D85A30"></div><span>Wants</span></div>
+          <span class="legend-val" style="color:#D85A30" id="l-wants">0%</span>
+        </div>
+        <div class="legend-row">
+          <div class="legend-left"><div class="legend-dot" style="background:#534AB7"></div><span>Surplus</span></div>
+          <span class="legend-val" style="color:#534AB7" id="l-surplus">0%</span>
+        </div>
+      </div>
+
+      <div class="targets">
+        <div class="targets-title">Suggested targets</div>
+        <div class="target-row"><span>Fixed</span><span style="font-weight:600">≤ 40%</span></div>
+        <div class="target-row"><span>Needs</span><span style="font-weight:600">≤ 20%</span></div>
+        <div class="target-row"><span>Wants</span><span style="font-weight:600">≤ 30%</span></div>
+        <div class="target-row"><span>Savings / surplus</span><span style="font-weight:600">≥ 10%</span></div>
+      </div>
+
+      <div class="rec" id="rec" style="background:#f9f8f5;color:#aaa;border-radius:8px;padding:9px 11px;font-size:12px;line-height:1.5">
+        Add your income and expenses to see a recommendation.
+      </div>
+    </div>
+
+    <!-- Expense list -->
+    <div>
+      <div class="list-panel">
+        <div class="list-header">
+          <span>Expense</span>
+          <span style="text-align:right" id="list-header-amt">Amount</span>
+          <span style="text-align:center">Type</span>
+          <span></span>
+        </div>
+        <div id="expense-list">
+          <div class="empty-state">
+            <strong>No expenses yet.</strong><br>
+            Use the form below to add your first expense.<br>
+            <span style="font-size:12px">Fixed = same every month &nbsp;·&nbsp; Need = variable necessity &nbsp;·&nbsp; Want = discretionary</span>
+          </div>
+        </div>
+        <div class="add-form">
+          <input type="text" id="new-name" placeholder="Expense name..." autocomplete="off" />
+          <input type="number" id="new-amt" placeholder="Amount" min="0" step="10" />
+          <select class="type-select" id="new-type">
+            <option value="fixed">Fixed</option>
+            <option value="need">Need</option>
+            <option value="want">Want</option>
+          </select>
+          <button class="btn-add" onclick="addItem()">+ Add</button>
+        </div>
+        <div class="progress-section">
+          <div class="progress-meta">
+            <span>Budget utilization</span>
+            <span id="util-txt">—</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="util-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-row">
+        <button class="btn-clear" onclick="clearAll()">Clear all data</button>
+        <span class="save-status" id="save-status"></span>
+      </div>
+      <p class="hint">Double-click any name or amount to edit it. Data saves automatically in your browser.</p>
+    </div>
+  </div>
+
+  <!-- ══ LOAN TRACKER ══════════════════════════════════════════════════════ -->
+  <div class="section-divider">
+    <h2>Loan tracker</h2>
+    <div class="section-divider-line"></div>
+    <span class="section-sub">Update monthly to watch your debt go down</span>
+  </div>
+
+  <div class="loans-grid" id="loans-grid">
+    <p class="loans-empty">No loans yet — add one below to start tracking your debt payoff.</p>
+  </div>
+
+  <div class="add-loan-form">
+    <input type="text" id="nl-name" placeholder="Loan name (e.g. Car loan, Mortgage)" autocomplete="off" />
+    <input type="number" id="nl-balance" placeholder="Current balance" min="0" step="100" />
+    <input type="number" id="nl-payment" placeholder="Monthly payment" min="0" step="50" />
+    <button class="btn-add" onclick="addLoan()">+ Add Loan</button>
+  </div>
+  <p class="hint" style="margin-top:6px">The original balance is set when you first add the loan and is used to calculate the payoff progress bar. Double-click a loan name to rename it.</p>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let stableIncome    = 0;
+let freelanceIncome = 0;
+let currency        = 'USD';
+let items           = [];
+let loans           = [];
+let nextId          = 1;
+let nextLoanId      = 1;
+let chart;
+
+function totalIncome() { return stableIncome + freelanceIncome; }
+
+// ─── Persistence ─────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'budget_planner_v1';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      stableIncome    = d.stableIncome    ?? 0;
+      freelanceIncome = d.freelanceIncome ?? 0;
+      currency        = d.currency        ?? 'USD';
+      items           = d.items           ?? [];
+      loans           = d.loans           ?? [];
+      nextId          = d.nextId          ?? 1;
+      nextLoanId      = d.nextLoanId      ?? 1;
+    }
+  } catch(e) { /* start fresh */ }
+
+  document.getElementById('stable-input').value    = stableIncome;
+  document.getElementById('freelance-input').value = freelanceIncome;
+  document.getElementById('currency-input').value  = currency;
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    stableIncome, freelanceIncome, currency, items, loans, nextId, nextLoanId
+  }));
+  flash('Saved ✓');
+}
+
+function flash(msg) {
+  const el = document.getElementById('save-status');
+  el.textContent = msg;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.textContent = '', 2000);
+}
+
+function deepCopy(x) { return JSON.parse(JSON.stringify(x)); }
+
+// ─── Currency ─────────────────────────────────────────────────────────────────
+function setCurrency(v) {
+  currency = v.trim() || 'USD';
+  updateCurrencyLabels();
+  render(); saveData();
+}
+
+function updateCurrencyLabels() {
+  setText('total-curr', currency + '/mo');
+  const hdr = document.getElementById('list-header-amt');
+  if (hdr) hdr.textContent = 'Amount (' + currency + ')';
+}
+
+// ─── Income ──────────────────────────────────────────────────────────────────
+function setStableIncome(v)    { const n=parseFloat(v)||0; stableIncome=n;    render(); saveData(); }
+function setFreelanceIncome(v) { const n=parseFloat(v)||0; freelanceIncome=n; render(); saveData(); }
+
+// ─── Expense actions ──────────────────────────────────────────────────────────
+function setType(id, type) {
+  const item = items.find(i => i.id === id);
+  if (item) { item.type = type; render(); saveData(); }
+}
+
+function deleteItem(id) {
+  if (!confirm('Remove this expense?')) return;
+  items = items.filter(i => i.id !== id);
+  render(); saveData();
+}
+
+function addItem() {
+  const nameEl = document.getElementById('new-name');
+  const amtEl  = document.getElementById('new-amt');
+  const typeEl = document.getElementById('new-type');
+  const name = nameEl.value.trim();
+  const amt  = parseFloat(amtEl.value);
+  if (!name) { nameEl.focus(); return; }
+  if (!amt || amt <= 0) { amtEl.focus(); return; }
+  items.push({ id: nextId++, name, amount: amt, type: typeEl.value });
+  nameEl.value = ''; amtEl.value = ''; nameEl.focus();
+  render(); saveData();
+}
+
+function clearAll() {
+  if (!confirm('Clear all data? This removes all expenses, loans, and income values.')) return;
+  stableIncome = 0; freelanceIncome = 0;
+  items = []; loans = []; nextId = 1; nextLoanId = 1;
+  document.getElementById('stable-input').value    = 0;
+  document.getElementById('freelance-input').value = 0;
+  render(); saveData();
+}
+
+// ─── Inline editing ───────────────────────────────────────────────────────────
+function startEditName(el, id) {
+  const item = items.find(i => i.id === id);
+  const inp = Object.assign(document.createElement('input'), {
+    value: item.name,
+    style: 'width:100%;font-size:13px;border:1px solid #534AB7;border-radius:4px;padding:2px 6px;outline:none'
+  });
+  el.replaceWith(inp); inp.focus(); inp.select();
+  const commit = () => { if (inp.value.trim()) { item.name = inp.value.trim(); saveData(); } render(); };
+  inp.onblur = commit;
+  inp.onkeydown = e => { if (e.key==='Enter') inp.blur(); if (e.key==='Escape') render(); };
+}
+
+function startEditAmt(el, id) {
+  const item = items.find(i => i.id === id);
+  const inp = Object.assign(document.createElement('input'), { type:'number', value:item.amount, min:'0' });
+  inp.style = 'width:100%;font-size:13px;font-weight:600;text-align:right;border:1px solid #534AB7;border-radius:4px;padding:2px 6px;outline:none';
+  el.replaceWith(inp); inp.focus(); inp.select();
+  const commit = () => { const v=parseFloat(inp.value); if(v>0) item.amount=v; render(); saveData(); };
+  inp.onblur = commit;
+  inp.onkeydown = e => { if (e.key==='Enter') inp.blur(); if (e.key==='Escape') render(); };
+}
+
+// ─── Welcome banner ───────────────────────────────────────────────────────────
+function updateWelcome() {
+  const empty = items.length === 0 && loans.length === 0 && totalIncome() === 0;
+  document.getElementById('welcome').classList.toggle('visible', empty);
+}
+
+// ─── Render expense list ─────────────────────────────────────────────────────
+function renderList() {
+  const list = document.getElementById('expense-list');
+  list.innerHTML = '';
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <strong>No expenses yet.</strong><br>
+      Use the form below to add your first expense.<br>
+      <span style="font-size:12px">Fixed = same every month &nbsp;·&nbsp; Need = variable necessity &nbsp;·&nbsp; Want = discretionary</span>
+    </div>`;
+    return;
+  }
+
+  const typeOrder = { fixed:0, need:1, want:2 };
+  const COLOR     = { fixed:'#378ADD', need:'#1D9E75', want:'#D85A30' };
+  const sorted    = [...items].sort((a,b) => {
+    const td = typeOrder[a.type] - typeOrder[b.type];
+    return td !== 0 ? td : b.amount - a.amount;
+  });
+
+  let lastType = null;
+  sorted.forEach(item => {
+    if (item.type !== lastType) {
+      const label = document.createElement('div');
+      label.className = 'list-section-label';
+      label.textContent = item.type==='fixed' ? 'Fixed expenses' : item.type==='need' ? 'Variable needs' : 'Wants';
+      list.appendChild(label);
+      lastType = item.type;
+    }
+    const row = document.createElement('div');
+    row.className = 'expense-row';
+    row.innerHTML = `
+      <div class="item-name" title="Double-click to edit">
+        <span ondblclick="startEditName(this,${item.id})">${esc(item.name)}</span>
+      </div>
+      <div class="item-amount" style="color:${COLOR[item.type]}" title="Double-click to edit">
+        <span ondblclick="startEditAmt(this,${item.id})">${fmt(item.amount)}</span>
+      </div>
+      <div class="toggle">
+        <button class="${item.type==='fixed'?'fixed':''}" onclick="setType(${item.id},'fixed')">Fixed</button>
+        <button class="${item.type==='need' ?'need' :''}" onclick="setType(${item.id},'need')">Need</button>
+        <button class="${item.type==='want' ?'want' :''}" onclick="setType(${item.id},'want')">Want</button>
+      </div>
+      <button class="del-btn" onclick="deleteItem(${item.id})" title="Remove">×</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ─── Update stats ─────────────────────────────────────────────────────────────
+function updateStats() {
+  const inc    = totalIncome();
+  const fixed  = items.filter(i=>i.type==='fixed').reduce((s,i)=>s+i.amount,0);
+  const needs  = items.filter(i=>i.type==='need') .reduce((s,i)=>s+i.amount,0);
+  const wants  = items.filter(i=>i.type==='want') .reduce((s,i)=>s+i.amount,0);
+  const total  = fixed + needs + wants;
+  const surplus = inc - total;
+
+  const fPct = pct(fixed,  inc);
+  const nPct = pct(needs,  inc);
+  const wPct = pct(wants,  inc);
+  const sPct = inc > 0 ? Math.round(surplus/inc*100) : 0;
+  const spendPct = pct(total, inc);
+
+  setText('total-disp', fmt(inc));
+  setText('total-curr', currency + '/mo');
+
+  // Summary cards
+  setText('c-fixed',      fmt(fixed));  setText('c-fixed-pct',   fPct+'% of income');
+  setText('c-needs',      fmt(needs));  setText('c-needs-pct',   nPct+'% of income');
+  setText('c-wants',      fmt(wants));  setText('c-wants-pct',   wPct+'% of income');
+  setText('c-surplus',    fmt(Math.abs(surplus)));
+  setText('c-surplus-pct', surplus >= 0 ? sPct+'% of income' : '⚠ Over budget');
+  document.getElementById('c-surplus').style.color = surplus < 0 ? '#E24B4A' : '#534AB7';
+
+  const totalDebt = loans.reduce((s,l) => s+l.currentBalance, 0);
+  setText('c-debt',     totalDebt > 0 ? fmt(totalDebt) : '—');
+  setText('c-debt-sub', loans.length > 0 ? loans.length+' loan'+(loans.length===1?'':'s') : 'no loans added');
+
+  // Legend
+  setText('l-fixed',   fPct+'%');
+  setText('l-needs',   nPct+'%');
+  setText('l-wants',   wPct+'%');
+  setText('l-surplus', (surplus>=0?'+':'')+sPct+'%');
+  setText('chart-pct', spendPct+'%');
+
+  // Progress bar
+  const bar = document.getElementById('util-bar');
+  bar.style.width      = Math.min(100, spendPct) + '%';
+  bar.style.background = surplus<0 ? '#E24B4A' : wPct>30 ? '#BA7517' : '#1D9E75';
+  setText('util-txt', inc > 0 ? spendPct+'% of income used' : 'Set your income above');
+
+  // Recommendation
+  const rec = document.getElementById('rec');
+  if (inc === 0) {
+    styleRec(rec, '#f9f8f5', '#aaa');
+    rec.textContent = 'Add your income and expenses to see a recommendation.';
+  } else if (surplus < 0) {
+    styleRec(rec, '#fff0f0', '#a32d2d');
+    rec.textContent = 'Over budget by '+fmt(Math.abs(surplus))+' '+currency+' — cut wants or boost income.';
+  } else if (wPct > 30) {
+    styleRec(rec, '#fef3e2', '#854F0B');
+    rec.textContent = 'Wants at '+wPct+'% — the 50/30/20 rule suggests keeping wants at or below 30%.';
+  } else if (sPct >= 20) {
+    styleRec(rec, '#eaf3de', '#3B6D11');
+    rec.textContent = fmt(surplus)+' '+currency+' surplus ('+sPct+'%) — great savings rate! Consider investing the excess.';
+  } else {
+    styleRec(rec, '#e6f1fb', '#185FA5');
+    rec.textContent = fmt(surplus)+' '+currency+' surplus — aim to save at least 20% of income for long-term wealth building.';
+  }
+
+  // Chart
+  if (chart) {
+    chart.data.datasets[0].data = [fixed, needs, wants, Math.max(0, surplus)];
+    chart.update();
+  }
+
+  updateWelcome();
+}
+
+function styleRec(el, bg, color) {
+  Object.assign(el.style, { background:bg, color, borderRadius:'8px', padding:'9px 11px', fontSize:'12px', lineHeight:'1.5' });
+}
+
+// ─── Loan tracker ─────────────────────────────────────────────────────────────
+function addLoan() {
+  const nameEl    = document.getElementById('nl-name');
+  const balanceEl = document.getElementById('nl-balance');
+  const paymentEl = document.getElementById('nl-payment');
+  const name    = nameEl.value.trim();
+  const balance = parseFloat(balanceEl.value);
+  const payment = parseFloat(paymentEl.value) || 0;
+  if (!name)            { nameEl.focus(); return; }
+  if (!balance || balance<=0) { balanceEl.focus(); return; }
+
+  loans.push({
+    id: nextLoanId++, name,
+    originalBalance: balance, currentBalance: balance,
+    monthlyPayment:  payment,
+    history: [{ date: todayStr(), balance }]
+  });
+  nameEl.value=''; balanceEl.value=''; paymentEl.value='';
+  renderLoans(); updateStats(); saveData();
+}
+
+function deleteLoan(id) {
+  if (!confirm('Remove this loan?')) return;
+  loans = loans.filter(l=>l.id!==id);
+  renderLoans(); updateStats(); saveData();
+}
+
+function showUpdateForm(id) {
+  const form = document.getElementById('lf-'+id);
+  const inp  = document.getElementById('li-'+id);
+  const loan = loans.find(l=>l.id===id);
+  if (form) { form.classList.add('visible'); inp.value=loan.currentBalance; inp.focus(); inp.select(); }
+}
+
+function hideUpdateForm(id) {
+  const form = document.getElementById('lf-'+id);
+  if (form) form.classList.remove('visible');
+}
+
+function saveBalance(id) {
+  const inp  = document.getElementById('li-'+id);
+  const loan = loans.find(l=>l.id===id);
+  const v    = parseFloat(inp.value);
+  if (!loan || isNaN(v) || v < 0) return;
+  loan.currentBalance = v;
+  loan.history.push({ date: todayStr(), balance: v });
+  hideUpdateForm(id);
+  renderLoans(); updateStats(); saveData();
+}
+
+function startEditLoanName(el, id) {
+  const loan = loans.find(l=>l.id===id);
+  const inp  = Object.assign(document.createElement('input'), { value: loan.name });
+  inp.style = 'width:100%;font-size:14px;font-weight:600;border:1px solid #534AB7;border-radius:4px;padding:2px 6px;outline:none';
+  el.replaceWith(inp); inp.focus(); inp.select();
+  const commit = () => { if (inp.value.trim()) { loan.name=inp.value.trim(); saveData(); } renderLoans(); };
+  inp.onblur = commit;
+  inp.onkeydown = e => { if (e.key==='Enter') inp.blur(); if (e.key==='Escape') renderLoans(); };
+}
+
+function toggleHistory(id) {
+  const el  = document.getElementById('lh-'+id);
+  const btn = document.getElementById('lht-'+id);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open ? 'Show history' : 'Hide history';
+}
+
+function renderLoans() {
+  const grid = document.getElementById('loans-grid');
+  grid.innerHTML = '';
+
+  if (loans.length === 0) {
+    grid.innerHTML = '<p class="loans-empty">No loans yet — add one below to start tracking your debt payoff.</p>';
+    return;
+  }
+
+  loans.forEach(loan => {
+    const paidPct  = loan.originalBalance > 0
+      ? Math.min(100, Math.round((1 - loan.currentBalance/loan.originalBalance)*100)) : 0;
+    const monthsLeft = loan.monthlyPayment > 0 ? Math.ceil(loan.currentBalance/loan.monthlyPayment) : null;
+    const barColor = paidPct < 25 ? '#E24B4A' : paidPct < 60 ? '#BA7517' : '#1D9E75';
+
+    const hist = [...loan.history].reverse().slice(0, 5);
+    const histHtml = hist.length === 0
+      ? '<p style="color:#bbb;font-size:11px">No entries yet.</p>'
+      : `<table class="loan-history-table">
+           <thead><tr><th>Date</th><th>Balance</th><th>Change</th></tr></thead>
+           <tbody>
+             ${hist.map((h,i) => {
+               const prev  = i < hist.length-1 ? hist[i+1] : null;
+               const delta = prev ? h.balance - prev.balance : null;
+               const dHtml = delta !== null
+                 ? `<span class="${delta<0?'loan-delta-neg':'loan-delta-pos'}">${delta<0?'▼ ':'▲ +'}${fmt(Math.abs(delta))}</span>`
+                 : '<span style="color:#bbb">—</span>';
+               return `<tr><td>${h.date}</td><td>${fmt(h.balance)}</td><td>${dHtml}</td></tr>`;
+             }).join('')}
+           </tbody>
+         </table>`;
+
+    const card = document.createElement('div');
+    card.className = 'loan-card';
+    card.innerHTML = `
+      <div class="loan-card-header">
+        <span class="loan-name" ondblclick="startEditLoanName(this,${loan.id})">${esc(loan.name)}</span>
+        <button class="del-btn" onclick="deleteLoan(${loan.id})" title="Remove">×</button>
+      </div>
+      <div class="loan-balance-wrap">
+        <span class="loan-balance" style="color:#E24B4A">${fmt(loan.currentBalance)}</span>
+        <span class="loan-currency">${esc(currency)} remaining</span>
+      </div>
+      <div>
+        <div class="loan-progress-track">
+          <div class="loan-progress-fill" style="width:${paidPct}%;background:${barColor}"></div>
+        </div>
+        <div class="loan-progress-labels">
+          <span>${paidPct}% paid off</span>
+          <span>${fmt(loan.originalBalance)} original</span>
+        </div>
+      </div>
+      <div class="loan-meta">
+        ${loan.monthlyPayment > 0 ? fmt(loan.monthlyPayment)+' '+esc(currency)+'/mo' : 'No payment set'}
+        ${monthsLeft !== null ? ' &middot; ~'+monthsLeft+' months left' : ''}
+      </div>
+      <div><button class="btn-update" onclick="showUpdateForm(${loan.id})">Update balance</button></div>
+      <div class="loan-update-form" id="lf-${loan.id}">
+        <label>New balance:</label>
+        <input type="number" id="li-${loan.id}" min="0" step="100"
+          onkeydown="if(event.key==='Enter')saveBalance(${loan.id});if(event.key==='Escape')hideUpdateForm(${loan.id})" />
+        <button class="btn-save-balance"   onclick="saveBalance(${loan.id})">Save</button>
+        <button class="btn-cancel-balance" onclick="hideUpdateForm(${loan.id})">Cancel</button>
+      </div>
+      <div class="loan-history">
+        ${loan.history.length > 0
+          ? `<button class="loan-history-toggle" id="lht-${loan.id}" onclick="toggleHistory(${loan.id})">Show history</button>
+             <div id="lh-${loan.id}" style="display:none">${histHtml}</div>`
+          : '<span style="font-size:11px;color:#bbb">No balance history yet.</span>'
+        }
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─── Full render ──────────────────────────────────────────────────────────────
+function render() { renderList(); renderLoans(); updateStats(); }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function pct(a,b)        { return b===0 ? 0 : Math.round(a/b*100); }
+function fmt(n)           { return Math.round(n).toLocaleString(); }
+function setText(id,txt)  { const el=document.getElementById(id); if(el) el.textContent=txt; }
+function esc(s)           { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function todayStr()       { return new Date().toISOString().slice(0,10); }
+
+// ─── Month badge ──────────────────────────────────────────────────────────────
+function setMonthBadge() {
+  document.getElementById('month-badge').textContent =
+    new Date().toLocaleString(undefined, { month:'long', year:'numeric' });
+}
+
+// ─── Chart ────────────────────────────────────────────────────────────────────
+function initChart() {
+  const ctx = document.getElementById('myChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Fixed','Needs','Wants','Surplus'],
+      datasets: [{
+        data: [0,0,0,100],
+        backgroundColor: ['#378ADD','#1D9E75','#D85A30','#534AB7'],
+        borderWidth: 0, hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => {
+              const inc = totalIncome();
+              const p = inc>0 ? Math.round(c.raw/inc*100) : 0;
+              return ' '+c.label+': '+fmt(c.raw)+' '+currency+' ('+p+'%)';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  const date = todayStr();
+  let csv  = '# Budget Planner Export — '+date+'\n';
+  csv += 'currency,'+currency+'\n';
+  csv += 'stable_income,'+stableIncome+'\n';
+  csv += 'freelance_income,'+freelanceIncome+'\n';
+  csv += '\n# Expenses\nname,amount,type\n';
+  items.forEach(i => { csv += '"'+i.name.replace(/"/g,'""')+'",'+i.amount+','+i.type+'\n'; });
+  csv += '\n# Loans\nloan_name,original_balance,current_balance,monthly_payment\n';
+  loans.forEach(l => { csv += '"'+l.name.replace(/"/g,'""')+'",'+l.originalBalance+','+l.currentBalance+','+l.monthlyPayment+'\n'; });
+
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'budget_'+date+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  flash('Exported ✓');
+}
+
+// ─── CSV Import ───────────────────────────────────────────────────────────────
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
+    let ns=stableIncome, nf=freelanceIncome, nc=currency;
+    let ni=[], nl=[], nid=nextId, nlid=nextLoanId, mode='';
+
+    for (const line of lines) {
+      const cols = parseCSVLine(line);
+      if (!cols.length) continue;
+      const key = cols[0].toLowerCase();
+      if (key==='currency')        { nc=cols[1]||nc; continue; }
+      if (key==='stable_income')   { ns=parseFloat(cols[1])||ns; continue; }
+      if (key==='freelance_income'){ nf=parseFloat(cols[1])||0;  continue; }
+      if (key==='name')            { mode='items'; continue; }
+      if (key==='loan_name')       { mode='loans'; continue; }
+
+      if (mode==='items'&&cols.length>=3) {
+        const amt=parseFloat(cols[1]); const typ=['fixed','need','want'].includes(cols[2])?cols[2]:'need';
+        if (cols[0]&&amt>0) ni.push({id:nid++,name:cols[0],amount:amt,type:typ});
+      } else if (mode==='loans'&&cols.length>=4) {
+        const ob=parseFloat(cols[1]),cb=parseFloat(cols[2]),mp=parseFloat(cols[3])||0;
+        if (cols[0]&&ob>0) nl.push({id:nlid++,name:cols[0],originalBalance:ob,currentBalance:cb||ob,monthlyPayment:mp,history:[]});
+      }
+    }
+
+    input.value='';
+    if (!ni.length&&!nl.length) { alert('No valid data found in file.'); return; }
+    if (!confirm('Import '+ni.length+' expenses and '+nl.length+' loans? This replaces current data.')) return;
+
+    stableIncome=ns; freelanceIncome=nf; currency=nc;
+    items=ni; loans=nl; nextId=nid; nextLoanId=nlid;
+    document.getElementById('stable-input').value    = stableIncome;
+    document.getElementById('freelance-input').value = freelanceIncome;
+    document.getElementById('currency-input').value  = currency;
+    updateCurrencyLabels(); render(); saveData();
+  };
+  reader.readAsText(file);
+}
+
+function parseCSVLine(line) {
+  const cols=[]; let cur='', inQ=false;
+  for (let i=0;i<line.length;i++) {
+    const ch=line[i];
+    if (ch==='"') { if(inQ&&line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; }
+    else if (ch===','&&!inQ) { cols.push(cur.trim()); cur=''; }
+    else cur+=ch;
+  }
+  cols.push(cur.trim()); return cols;
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+document.getElementById('currency-input')  .addEventListener('change', e => setCurrency(e.target.value));
+document.getElementById('stable-input')    .addEventListener('change', e => setStableIncome(e.target.value));
+document.getElementById('freelance-input') .addEventListener('change', e => setFreelanceIncome(e.target.value));
+document.getElementById('freelance-input') .addEventListener('input',  e => {
+  const total = (parseFloat(document.getElementById('stable-input').value)||0) + (parseFloat(e.target.value)||0);
+  setText('total-disp', fmt(total));
+});
+document.getElementById('new-name')  .addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('new-amt').focus(); });
+document.getElementById('new-amt')   .addEventListener('keydown', e => { if(e.key==='Enter') addItem(); });
+document.getElementById('nl-name')   .addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('nl-balance').focus(); });
+document.getElementById('nl-balance').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('nl-payment').focus(); });
+document.getElementById('nl-payment').addEventListener('keydown', e => { if(e.key==='Enter') addLoan(); });
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+setMonthBadge();
+initChart();
+loadData();
+updateCurrencyLabels();
+render();
+</script>
+</body>
+</html>
