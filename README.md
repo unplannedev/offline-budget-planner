@@ -99,7 +99,9 @@ If you are actively paying off debt, aim for Wants ≤ 10% and Surplus ≥ 30% a
 Pure HTML, CSS, and JavaScript. No build step, no framework, no bundler. External dependencies:
 
 - [Chart.js](https://www.chartjs.org/) — donut chart
-- [corsproxy.io](https://corsproxy.io/) — CORS proxy used as a fallback when fetching Yahoo Finance prices directly is blocked by the browser
+- [Alpha Vantage](https://www.alphavantage.co/) — stock & ETF live prices (free API key required, 25 calls/day)
+- [CoinGecko](https://www.coingecko.com/) — crypto prices (no key required)
+- [open.er-api.com](https://www.open.er-api.com/) — currency exchange rates (no key required)
 
 Data is stored in `localStorage` under the key `budget_planner_v1`. Each browser/device has its own separate storage, so use **Export CSV** to move data between devices.
 
