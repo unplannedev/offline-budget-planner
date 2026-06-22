@@ -14,6 +14,7 @@ A single-file, self-contained budget planner that runs entirely in the browser. 
 - **Budget health indicator** — automatic recommendation based on your current split
 - **Loan tracker** — add any loan or debt, track the remaining balance month by month, and watch a progress bar go from red to green as you pay it down
 - **Balance history** — every time you update a loan balance, the date and amount are logged so you can see your payoff progress over time
+- **Investment portfolio** — track stocks, ETFs, crypto, and forex with live prices from Yahoo Finance; shows portfolio value, total cost, and unrealized gain/loss
 - **Configurable currency** — type any code or symbol (`USD`, `EUR`, `GBP`, `RON`, `$`, `€`, ...)
 - **CSV export & import** — back up your data as a plain CSV file, edit it in Excel/Sheets, and re-import it
 - **Auto-save** — all data is saved automatically to browser localStorage; your data persists between sessions
@@ -25,6 +26,7 @@ A single-file, self-contained budget planner that runs entirely in the browser. 
 3. Set your **currency** and **monthly income** in the top bar
 4. Add your expenses using the form — toggle each one between **Fixed**, **Need**, and **Want**
 5. Add your loans in the Loan Tracker section and update balances each month
+6. Add investments in the Investments section using Yahoo Finance tickers
 
 That's it. No configuration needed.
 
@@ -34,6 +36,15 @@ That's it. No configuration needed.
 2. The original balance is recorded on creation and used to calculate the payoff progress bar
 3. Each month, click **Update balance** on a loan card and enter the new remaining balance
 4. The history table logs every update with the date and the change amount (▼ = paid down, ▲ = increased)
+
+## How to use the investment tracker
+
+1. Enter a Yahoo Finance ticker, an optional name, quantity, and buy price, then click **+ Add**
+2. Click **↻ Refresh all prices** to fetch live prices from Yahoo Finance
+3. If price fetching is blocked (CORS), each card has a manual price entry field
+4. The summary cards show total portfolio value, total cost basis, and overall gain/loss
+
+Supported ticker formats: `AAPL` (stocks), `BTC-USD` (crypto), `VUSA.L` (London-listed ETFs), `EURUSD=X` (forex pairs).
 
 ## Export & import
 
@@ -55,6 +66,11 @@ name,amount,type
 # Loans
 loan_name,original_balance,current_balance,monthly_payment
 "Car loan",18000,14300,350
+
+# Investments
+inv_ticker,inv_name,quantity,buy_price,current_price
+"AAPL","Apple",10,150.00,213.50
+"BTC-USD","Bitcoin",0.25,40000,67800
 ```
 
 **Import CSV** reads the same format back in. You can also edit the CSV in Excel or Google Sheets and re-import it — useful for bulk edits.
@@ -75,12 +91,15 @@ If you are actively paying off debt, aim for Wants ≤ 10% and Surplus ≥ 30% a
 ## Editing data inline
 
 - **Double-click** any expense name or amount to edit it in place
-- **Double-click** any loan name to rename it
+- **Double-click** any loan name or investment name to rename it
 - Press **Enter** to confirm or **Escape** to cancel
 
 ## Tech
 
-Pure HTML, CSS, and JavaScript. The only external dependency is [Chart.js](https://www.chartjs.org/) loaded from cdnjs. Everything else is inline — no build step, no framework, no bundler.
+Pure HTML, CSS, and JavaScript. No build step, no framework, no bundler. External dependencies:
+
+- [Chart.js](https://www.chartjs.org/) — donut chart
+- [corsproxy.io](https://corsproxy.io/) — CORS proxy used as a fallback when fetching Yahoo Finance prices directly is blocked by the browser
 
 Data is stored in `localStorage` under the key `budget_planner_v1`. Each browser/device has its own separate storage, so use **Export CSV** to move data between devices.
 

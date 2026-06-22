@@ -303,6 +303,47 @@ body {
 
 .hint { font-size:11px; color:#bbb; margin-top:6px; padding:0 2px; }
 
+/* ── Investments ─────────────────────────────────────── */
+.invest-summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+.invest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+.invest-card{background:#fff;border-radius:10px;border:1px solid #e8e7e3;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:9px}
+.invest-card-header{display:flex;align-items:center;gap:9px}
+.invest-ticker{font-size:12px;font-weight:700;padding:3px 8px;background:#f0effe;color:#534AB7;border-radius:5px;flex-shrink:0;letter-spacing:0.03em}
+.invest-name{font-size:13px;color:#555;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text}
+.invest-name input{width:100%;font-size:13px;border:1px solid #534AB7;border-radius:4px;padding:2px 6px;outline:none}
+.invest-price-row{display:flex;align-items:baseline;gap:6px}
+.invest-price{font-size:22px;font-weight:700}
+.invest-price-na{font-size:22px;font-weight:700;color:#ccc}
+.invest-price-label{font-size:11px;color:#aaa}
+.invest-stats{font-size:12px;color:#777;line-height:1.8}
+.gain-pos{color:#1D9E75;font-weight:600}
+.gain-neg{color:#E24B4A;font-weight:600}
+.gain-zero{color:#aaa}
+.invest-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn-refresh{font-size:12px;font-weight:500;padding:4px 11px;background:#fff;color:#534AB7;border:1px solid #534AB7;border-radius:6px;cursor:pointer;transition:background 0.1s}
+.btn-refresh:hover{background:#f0effe}
+.btn-refresh:disabled{opacity:0.45;cursor:not-allowed}
+.invest-ext-link{font-size:11px;color:#bbb;text-decoration:none}
+.invest-ext-link:hover{color:#534AB7;text-decoration:underline}
+.invest-manual{display:flex;gap:6px;align-items:center}
+.invest-manual input{flex:1;font-size:13px;font-weight:600;padding:4px 8px;border:1px solid #ddd;border-radius:6px;outline:none;text-align:right}
+.invest-manual input:focus{border-color:#534AB7}
+.invest-manual button{font-size:12px;padding:4px 10px;background:#f0effe;color:#534AB7;border:1px solid #534AB7;border-radius:6px;cursor:pointer}
+.invest-updated{font-size:10px;color:#ccc}
+.invest-empty{color:#bbb;font-size:13px;text-align:center;padding:1.5rem}
+.invest-refresh-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.av-key-row{display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.btn-refresh-all{font-size:13px;font-weight:500;padding:6px 14px;background:#534AB7;color:#fff;border:none;border-radius:6px;cursor:pointer;transition:background 0.1s}
+.btn-refresh-all:hover{background:#3C3489}
+.btn-refresh-all:disabled{background:#bbb;cursor:not-allowed}
+.refresh-status{font-size:12px}
+.add-invest-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border-radius:10px;border:1px solid #e8e7e3;padding:12px 14px;margin-top:1rem}
+.add-invest-form input{font-size:13px;padding:6px 9px;border:1px solid #ddd;border-radius:6px;outline:none}
+.add-invest-form input:focus{border-color:#534AB7}
+.ni-ticker{width:80px;font-weight:600;letter-spacing:0.03em}
+.ni-name{flex:2;min-width:110px}
+.ni-num{flex:1;min-width:80px;text-align:right}
+
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 760px) {
   .cards { grid-template-columns:repeat(3, 1fr); }
@@ -500,6 +541,55 @@ body {
   </div>
   <p class="hint" style="margin-top:6px">The original balance is set when you first add the loan and is used to calculate the payoff progress bar. Double-click a loan name to rename it.</p>
 
+  <!-- ══ INVESTMENTS ══════════════════════════════════════════════════════ -->
+  <div class="section-divider" style="margin-top:2.5rem">
+    <h2>Investments</h2>
+    <div class="section-divider-line"></div>
+    <span class="section-sub">Live prices via Alpha Vantage (stocks) · CoinGecko (crypto) · set manually if needed</span>
+  </div>
+
+  <div class="invest-summary-cards">
+    <div class="card">
+      <div class="card-label">Portfolio value</div>
+      <div class="card-value" id="inv-total-val" style="color:#534AB7">—</div>
+      <div class="card-sub">at current prices</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total cost</div>
+      <div class="card-value" id="inv-total-cost">—</div>
+      <div class="card-sub">at buy prices</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Unrealized gain / loss</div>
+      <div class="card-value" id="inv-total-gain" style="color:#aaa">—</div>
+      <div class="card-sub" id="inv-gain-pct"></div>
+    </div>
+  </div>
+
+  <div class="invest-refresh-row">
+    <button class="btn-refresh-all" id="refresh-all-btn" onclick="refreshAllPrices()">↻ Refresh all prices</button>
+    <span class="refresh-status" id="refresh-status"></span>
+  </div>
+  <div class="av-key-row" id="av-key-row">
+    <span id="av-key-status"></span>
+    <span style="font-size:11px;color:#aaa">Stock prices need a free API key →</span>
+    <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="font-size:11px;color:#534AB7">Get one free at alphavantage.co</a>
+    <input type="password" id="av-key-input" placeholder="Paste Alpha Vantage key" autocomplete="off"
+      style="font-size:11px;padding:3px 7px;border:1px solid #d0cfc9;border-radius:5px;width:180px;outline:none" />
+    <button onclick="saveAvKey()" style="font-size:11px;padding:3px 9px;border:none;background:#534AB7;color:#fff;border-radius:5px;cursor:pointer">Save</button>
+  </div>
+
+  <div class="invest-grid" id="invest-grid"></div>
+
+  <div class="add-invest-form">
+    <input class="ni-ticker" type="text" id="ni-ticker" placeholder="TICKER" maxlength="12" autocomplete="off" />
+    <input class="ni-name" type="text" id="ni-name" placeholder="Name (optional)" autocomplete="off" />
+    <input class="ni-num" type="number" id="ni-qty" placeholder="Quantity" min="0" step="0.001" />
+    <input class="ni-num" type="number" id="ni-buyprice" placeholder="Buy price (in your currency)" min="0" step="0.01" />
+    <button class="btn-add" onclick="addInvestment()">+ Add</button>
+  </div>
+  <p class="hint" style="margin-top:6px">Ticker formats: <code style="background:#f2f1ed;padding:1px 4px;border-radius:3px">AAPL</code> stocks &amp; ETFs, <code style="background:#f2f1ed;padding:1px 4px;border-radius:3px">BTC-USD</code> crypto (no key needed), <code style="background:#f2f1ed;padding:1px 4px;border-radius:3px">VUSA.L</code> London, <code style="background:#f2f1ed;padding:1px 4px;border-radius:3px">EURUSD=X</code> forex. Stock/ETF live prices require the free Alpha Vantage key above.</p>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -508,10 +598,13 @@ body {
 let stableIncome    = 0;
 let freelanceIncome = 0;
 let currency        = 'USD';
+let alphaVantageKey = '';
 let items           = [];
 let loans           = [];
 let nextId          = 1;
 let nextLoanId      = 1;
+let investments     = [];
+let nextInvestId    = 1;
 let chart;
 
 function totalIncome() { return stableIncome + freelanceIncome; }
@@ -527,21 +620,27 @@ function loadData() {
       stableIncome    = d.stableIncome    ?? 0;
       freelanceIncome = d.freelanceIncome ?? 0;
       currency        = d.currency        ?? 'USD';
+      alphaVantageKey = d.alphaVantageKey ?? '';
       items           = d.items           ?? [];
       loans           = d.loans           ?? [];
       nextId          = d.nextId          ?? 1;
       nextLoanId      = d.nextLoanId      ?? 1;
+      investments     = d.investments     ?? [];
+      nextInvestId    = d.nextInvestId    ?? 1;
     }
   } catch(e) { /* start fresh */ }
 
   document.getElementById('stable-input').value    = stableIncome;
   document.getElementById('freelance-input').value = freelanceIncome;
   document.getElementById('currency-input').value  = currency;
+  const avEl = document.getElementById('av-key-input');
+  if (avEl) avEl.value = alphaVantageKey;
+  updateAvKeyUI();
 }
 
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    stableIncome, freelanceIncome, currency, items, loans, nextId, nextLoanId
+    stableIncome, freelanceIncome, currency, alphaVantageKey, items, loans, investments, nextId, nextLoanId, nextInvestId
   }));
   flash('Saved ✓');
 }
@@ -598,9 +697,9 @@ function addItem() {
 }
 
 function clearAll() {
-  if (!confirm('Clear all data? This removes all expenses, loans, and income values.')) return;
+  if (!confirm('Clear all data? This removes all expenses, loans, investments, and income values.')) return;
   stableIncome = 0; freelanceIncome = 0;
-  items = []; loans = []; nextId = 1; nextLoanId = 1;
+  items = []; loans = []; investments = []; nextId = 1; nextLoanId = 1; nextInvestId = 1;
   document.getElementById('stable-input').value    = 0;
   document.getElementById('freelance-input').value = 0;
   render(); saveData();
@@ -906,7 +1005,7 @@ function renderLoans() {
 }
 
 // ─── Full render ──────────────────────────────────────────────────────────────
-function render() { renderList(); renderLoans(); updateStats(); }
+function render() { renderList(); renderLoans(); renderInvestments(); updateStats(); }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function pct(a,b)        { return b===0 ? 0 : Math.round(a/b*100); }
@@ -963,6 +1062,8 @@ function exportCSV() {
   items.forEach(i => { csv += '"'+i.name.replace(/"/g,'""')+'",'+i.amount+','+i.type+'\n'; });
   csv += '\n# Loans\nloan_name,original_balance,current_balance,monthly_payment\n';
   loans.forEach(l => { csv += '"'+l.name.replace(/"/g,'""')+'",'+l.originalBalance+','+l.currentBalance+','+l.monthlyPayment+'\n'; });
+  csv += '\n# Investments\ninv_ticker,inv_name,quantity,buy_price,current_price,native_currency,exchange_rate\n';
+  investments.forEach(i => { csv += '"'+i.ticker.replace(/"/g,'""')+'","'+(i.name||i.ticker).replace(/"/g,'""')+'",'+i.quantity+','+(i.buyPrice||0)+','+(i.currentPrice!==null?i.currentPrice:'')+','+(i.nativeCurrency||'')+','+(i.exchangeRate!=null?i.exchangeRate:'')+'\n'; });
 
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
@@ -981,7 +1082,7 @@ function importCSV(input) {
   reader.onload = e => {
     const lines = e.target.result.split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
     let ns=stableIncome, nf=freelanceIncome, nc=currency;
-    let ni=[], nl=[], nid=nextId, nlid=nextLoanId, mode='';
+    let ni=[], nl=[], nv=[], nid=nextId, nlid=nextLoanId, niid=nextInvestId, mode='';
 
     for (const line of lines) {
       const cols = parseCSVLine(line);
@@ -990,8 +1091,9 @@ function importCSV(input) {
       if (key==='currency')        { nc=cols[1]||nc; continue; }
       if (key==='stable_income')   { ns=parseFloat(cols[1])||ns; continue; }
       if (key==='freelance_income'){ nf=parseFloat(cols[1])||0;  continue; }
-      if (key==='name')            { mode='items'; continue; }
-      if (key==='loan_name')       { mode='loans'; continue; }
+      if (key==='name')            { mode='items';       continue; }
+      if (key==='loan_name')       { mode='loans';       continue; }
+      if (key==='inv_ticker')      { mode='investments'; continue; }
 
       if (mode==='items'&&cols.length>=3) {
         const amt=parseFloat(cols[1]); const typ=['fixed','need','want'].includes(cols[2])?cols[2]:'need';
@@ -999,15 +1101,19 @@ function importCSV(input) {
       } else if (mode==='loans'&&cols.length>=4) {
         const ob=parseFloat(cols[1]),cb=parseFloat(cols[2]),mp=parseFloat(cols[3])||0;
         if (cols[0]&&ob>0) nl.push({id:nlid++,name:cols[0],originalBalance:ob,currentBalance:cb||ob,monthlyPayment:mp,history:[]});
+      } else if (mode==='investments'&&cols.length>=3) {
+        const qty=parseFloat(cols[2]),bp=parseFloat(cols[3])||0,cp=cols[4]?parseFloat(cols[4]):null;
+        const nc=cols[5]||null, er=cols[6]?parseFloat(cols[6]):null;
+        if (cols[0]&&qty>0) nv.push({id:niid++,ticker:cols[0].toUpperCase(),name:cols[1]||cols[0],quantity:qty,buyPrice:bp,currentPrice:cp!==null&&!isNaN(cp)?cp:null,nativeCurrency:nc||null,exchangeRate:er!==null&&!isNaN(er)?er:null,lastFetched:null});
       }
     }
 
     input.value='';
-    if (!ni.length&&!nl.length) { alert('No valid data found in file.'); return; }
-    if (!confirm('Import '+ni.length+' expenses and '+nl.length+' loans? This replaces current data.')) return;
+    if (!ni.length&&!nl.length&&!nv.length) { alert('No valid data found in file.'); return; }
+    if (!confirm('Import '+ni.length+' expenses, '+nl.length+' loans, '+nv.length+' investments? This replaces current data.')) return;
 
     stableIncome=ns; freelanceIncome=nf; currency=nc;
-    items=ni; loans=nl; nextId=nid; nextLoanId=nlid;
+    items=ni; loans=nl; investments=nv; nextId=nid; nextLoanId=nlid; nextInvestId=niid;
     document.getElementById('stable-input').value    = stableIncome;
     document.getElementById('freelance-input').value = freelanceIncome;
     document.getElementById('currency-input').value  = currency;
@@ -1027,6 +1133,400 @@ function parseCSVLine(line) {
   cols.push(cur.trim()); return cols;
 }
 
+// ─── Investments ──────────────────────────────────────────────────────────────
+function addInvestment() {
+  const tickerEl = document.getElementById('ni-ticker');
+  const nameEl   = document.getElementById('ni-name');
+  const qtyEl    = document.getElementById('ni-qty');
+  const priceEl  = document.getElementById('ni-buyprice');
+  const ticker   = tickerEl.value.trim().toUpperCase();
+  const name     = nameEl.value.trim() || ticker;
+  const qty      = parseFloat(qtyEl.value);
+  const buyPx    = parseFloat(priceEl.value) || 0;
+  if (!ticker) { tickerEl.focus(); return; }
+  if (!qty || qty <= 0) { qtyEl.focus(); return; }
+  investments.push({ id:nextInvestId++, ticker, name, quantity:qty, buyPrice:buyPx,
+    currentPrice:null, nativeCurrency:null, exchangeRate:null, lastFetched:null });
+  tickerEl.value=''; nameEl.value=''; qtyEl.value=''; priceEl.value='';
+  tickerEl.focus();
+  renderInvestments(); saveData();
+}
+
+function deleteInvestment(id) {
+  if (!confirm('Remove this investment?')) return;
+  investments = investments.filter(i => i.id !== id);
+  renderInvestments(); saveData();
+}
+
+// ── Alpha Vantage ─────────────────────────────────────────────────────────────
+function saveAvKey() {
+  const el = document.getElementById('av-key-input');
+  alphaVantageKey = (el?.value || '').trim();
+  saveData();
+  updateAvKeyUI();
+}
+
+function updateAvKeyUI() {
+  const st = document.getElementById('av-key-status');
+  if (!st) return;
+  if (alphaVantageKey) {
+    st.textContent = '🟢 Key saved';
+    st.style.cssText = 'font-size:11px;color:#1D9E75;font-weight:600';
+  } else {
+    st.textContent = '';
+  }
+}
+
+// Infer native currency for exchange-listed tickers (Alpha Vantage doesn't return currency)
+function nativeCurrencyForTicker(ticker) {
+  if (/\.L$/i.test(ticker))              return 'GBp'; // London → pence
+  if (/\.(PA|DE|AS|MI|MC|BR|LS)$/i.test(ticker)) return 'EUR';
+  if (/\.(TO|V)$/i.test(ticker))         return 'CAD';
+  if (/\.AX$/i.test(ticker))             return 'AUD';
+  if (/\.HK$/i.test(ticker))             return 'HKD';
+  if (/\.T$/i.test(ticker))              return 'JPY';
+  return 'USD'; // US stocks, ETFs, etc.
+}
+
+// Fetch price via Alpha Vantage (proper CORS, no proxy needed)
+async function fetchAlphaVantage(ticker) {
+  if (!alphaVantageKey) return null;
+  const base = `https://www.alphavantage.co/query?apikey=${encodeURIComponent(alphaVantageKey)}`;
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), 10000);
+  try {
+    // Crypto: BTC-USD, ETH-EUR
+    const cryptoM = ticker.match(/^([A-Z0-9]+)-([A-Z]{3,4})$/i);
+    if (cryptoM) {
+      const [, from, to] = cryptoM;
+      const r = await fetch(`${base}&function=CURRENCY_EXCHANGE_RATE&from_currency=${from}&to_currency=${to}`, { signal: ctrl.signal });
+      const d = await r.json();
+      // Detect rate limit note
+      if (d.Note || d.Information) return null;
+      const p = parseFloat(d?.['Realtime Currency Exchange Rate']?.['5. Exchange Rate']);
+      return p > 0 ? { price: p, currency: to.toUpperCase() } : null;
+    }
+    // Forex: EURUSD=X
+    if (ticker.includes('=X')) {
+      const from = ticker.slice(0, 3).toUpperCase();
+      const to   = ticker.slice(3, 6).toUpperCase();
+      const r = await fetch(`${base}&function=CURRENCY_EXCHANGE_RATE&from_currency=${from}&to_currency=${to}`, { signal: ctrl.signal });
+      const d = await r.json();
+      if (d.Note || d.Information) return null;
+      const p = parseFloat(d?.['Realtime Currency Exchange Rate']?.['5. Exchange Rate']);
+      return p > 0 ? { price: p, currency: to } : null;
+    }
+    // Stocks / ETFs: GLOBAL_QUOTE
+    const r = await fetch(`${base}&function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}`, { signal: ctrl.signal });
+    const d = await r.json();
+    if (d.Note || d.Information) return null; // Rate limited
+    const p = parseFloat(d?.['Global Quote']?.['05. price']);
+    return p > 0 ? { price: p, currency: nativeCurrencyForTicker(ticker) } : null;
+  } catch(e) { return null; }
+}
+
+// CoinGecko IDs for common crypto tickers (the base symbol before the dash)
+const CG_IDS = {
+  BTC:'bitcoin',ETH:'ethereum',SOL:'solana',ADA:'cardano',XRP:'ripple',
+  DOGE:'dogecoin',DOT:'polkadot',AVAX:'avalanche-2',MATIC:'matic-network',
+  LINK:'chainlink',UNI:'uniswap',LTC:'litecoin',BCH:'bitcoin-cash',
+  ATOM:'cosmos',NEAR:'near',FTM:'fantom',ALGO:'algorand',XLM:'stellar',
+  SHIB:'shiba-inu',TRX:'tron',TON:'the-open-network',
+};
+
+// Returns { price, currency } in the asset's native currency, or null
+async function fetchYahooData(ticker) {
+  const sym = encodeURIComponent(ticker);
+
+  // Helper: one fetch with timeout; throws on any failure so Promise.any can skip it
+  async function via(url, extractFn) {
+    const ctrl = new AbortController();
+    const t    = setTimeout(() => ctrl.abort(), 7000);
+    try {
+      const r = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) throw new Error('not-ok');
+      const d = extractFn(await r.json());
+      if (!d) throw new Error('no-price');
+      return d;
+    } catch(e) { clearTimeout(t); throw e; }
+  }
+
+  // ── Crypto: BTC-USD, ETH-EUR, etc. ────────────────────────────────────────
+  const cryptoM = ticker.match(/^([A-Z0-9]+)-([A-Z]{3,4})$/i);
+  if (cryptoM) {
+    const [, coin, quoteCurr] = cryptoM;
+    const cgId = CG_IDS[coin.toUpperCase()];
+    if (cgId) {
+      try {
+        const qc = quoteCurr.toLowerCase();
+        return await via(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=${qc}`,
+          d => {
+            const p = d?.[cgId]?.[qc];
+            return p > 0 ? { price: p, currency: quoteCurr.toUpperCase() } : null;
+          }
+        );
+      } catch(e) {}
+    }
+    // Unknown coin — fall through to Yahoo Finance below
+  }
+
+  // ── Alpha Vantage (if key set) — reliable CORS, no proxy needed ───────────
+  if (alphaVantageKey) {
+    const av = await fetchAlphaVantage(ticker);
+    if (av) return av;
+  }
+
+  // ── Stocks & ETFs: parallel race of Yahoo Finance sources ─────────────────
+  const apiUrl  = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+  const pageUrl = `https://finance.yahoo.com/quote/${ticker}`;
+
+  // Extract from the v8 chart JSON
+  function fromChart(json) {
+    const meta = json?.chart?.result?.[0]?.meta;
+    const p    = meta?.regularMarketPrice;
+    return p > 0 ? { price: p, currency: meta?.currency || null } : null;
+  }
+
+  // Extract from Yahoo Finance HTML (used when API is blocked; price is embedded as JSON in the page)
+  function fromHtml(w) {
+    const html = w?.contents ?? (typeof w === 'string' ? w : '');
+    const pm   = html.match(/"regularMarketPrice"\s*:\s*\{"raw"\s*:\s*([\d.]+)/);
+    const cm   = html.match(/"currency"\s*:\s*"([A-Z]{3,4})"/);
+    return pm ? { price: parseFloat(pm[1]), currency: cm?.[1] || null } : null;
+  }
+
+  try {
+    return await Promise.any([
+      // 1. Direct (works locally from file://, or if Yahoo relaxes CORS)
+      via(apiUrl, fromChart),
+      // 2. allorigins raw → direct API response body
+      via('https://api.allorigins.win/raw?url=' + encodeURIComponent(apiUrl), fromChart),
+      // 3. allorigins get → API response wrapped in { contents: "..." }
+      via('https://api.allorigins.win/get?url=' + encodeURIComponent(apiUrl),
+          w => fromChart(JSON.parse(w.contents))),
+      // 4. allorigins get → full HTML quote page (bypasses API cookie/crumb requirement)
+      via('https://api.allorigins.win/get?url=' + encodeURIComponent(pageUrl), fromHtml),
+    ]);
+  } catch(e) {
+    return null; // All sources failed → user must set price manually
+  }
+}
+
+// Fetches exchange rate: how many toCurr is 1 fromCurr worth
+async function fetchExchangeRate(fromCurr, toCurr) {
+  if (!fromCurr || !toCurr) return null;
+  if (fromCurr.toUpperCase() === toCurr.toUpperCase()) return 1;
+  // GBp = British pence = GBP / 100
+  if (fromCurr === 'GBp') {
+    const r = await fetchExchangeRate('GBP', toCurr);
+    return r !== null ? r / 100 : null;
+  }
+  // open.er-api.com — genuinely CORS-enabled, free, no key, covers 160+ currencies
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 7000);
+    const r = await fetch(`https://open.er-api.com/v6/latest/${fromCurr.toUpperCase()}`, { signal: ctrl.signal });
+    if (r.ok) {
+      const d    = await r.json();
+      const rate = d?.rates?.[toCurr.toUpperCase()];
+      if (rate > 0) return rate;
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function refreshPrice(id) {
+  const inv = investments.find(i => i.id === id);
+  if (!inv) return;
+  const btn = document.getElementById('rbtn-'+id);
+  if (btn) { btn.disabled=true; btn.textContent='...'; }
+
+  const data = await fetchYahooData(inv.ticker);
+  if (data !== null) {
+    inv.currentPrice   = data.price;
+    inv.nativeCurrency = data.currency;
+    inv.lastFetched    = new Date().toISOString();
+    const dispCurr = currency || 'USD';
+    if (data.currency && data.currency !== dispCurr) {
+      inv.exchangeRate = await fetchExchangeRate(data.currency, dispCurr);
+    } else {
+      inv.exchangeRate = 1;
+    }
+    saveData();
+  }
+  renderInvestments();
+}
+
+async function refreshAllPrices() {
+  if (!investments.length) return;
+  const btn = document.getElementById('refresh-all-btn');
+  const st  = document.getElementById('refresh-status');
+  if (btn) { btn.disabled=true; btn.textContent='Refreshing…'; }
+  if (st)  { st.textContent=''; st.style.color='#aaa'; }
+
+  const dispCurr = currency || 'USD';
+  const rateCache = {};
+  let ok=0, fail=0;
+
+  for (const inv of investments) {
+    const data = await fetchYahooData(inv.ticker);
+    if (data !== null) {
+      inv.currentPrice   = data.price;
+      inv.nativeCurrency = data.currency;
+      inv.lastFetched    = new Date().toISOString();
+      if (data.currency && data.currency !== dispCurr) {
+        const key = (data.currency === 'GBp' ? 'GBp' : data.currency) + '->' + dispCurr;
+        if (rateCache[key] === undefined) rateCache[key] = await fetchExchangeRate(data.currency, dispCurr);
+        inv.exchangeRate = rateCache[key];
+      } else {
+        inv.exchangeRate = 1;
+      }
+      ok++;
+    } else fail++;
+  }
+
+  saveData(); renderInvestments();
+  if (btn) { btn.disabled=false; btn.textContent='↻ Refresh all prices'; }
+  if (st) {
+    if      (fail===0) { st.textContent=ok+' price'+(ok===1?'':'s')+' updated ✓'; st.style.color='#1D9E75'; }
+    else if (ok===0)   { st.textContent='Prices blocked — use manual entry below each card.'; st.style.color='#E24B4A'; }
+    else               { st.textContent=ok+' updated, '+fail+' failed — set manually.'; st.style.color='#BA7517'; }
+    setTimeout(() => { if (st) st.textContent=''; }, 6000);
+  }
+}
+
+function setManualPrice(id) {
+  const inp = document.getElementById('mpx-'+id);
+  const inv = investments.find(i => i.id === id);
+  const v   = parseFloat(inp.value);
+  if (!inv || isNaN(v) || v < 0) return;
+  inv.currentPrice = v;
+  inv.lastFetched  = new Date().toISOString() + ' (manual)';
+  inp.value = '';
+  renderInvestments(); saveData();
+}
+
+function startEditInvestName(el, id) {
+  const inv = investments.find(i => i.id === id);
+  const inp = document.createElement('input');
+  inp.value = inv.name;
+  inp.style = 'width:100%;font-size:13px;border:1px solid #534AB7;border-radius:4px;padding:2px 6px;outline:none';
+  el.replaceWith(inp); inp.focus(); inp.select();
+  const commit = () => { if (inp.value.trim()) { inv.name=inp.value.trim(); saveData(); } renderInvestments(); };
+  inp.onblur = commit;
+  inp.onkeydown = e => { if(e.key==='Enter') inp.blur(); if(e.key==='Escape') renderInvestments(); };
+}
+
+function fmtDec(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n < 0.01 ? n.toFixed(6) : n < 1 ? n.toFixed(4) : n < 100 ? n.toFixed(2) : Math.round(n).toLocaleString();
+}
+function fmtQty(n) {
+  return n === Math.floor(n) ? n.toLocaleString() : n.toFixed(4).replace(/\.?0+$/, '');
+}
+
+function renderInvestments() {
+  const grid = document.getElementById('invest-grid');
+  if (!grid) return;
+  const dispCurr = currency || 'USD';
+  grid.innerHTML = '';
+  if (investments.length === 0) {
+    grid.innerHTML = '<p class="invest-empty">No investments yet — add a ticker below.</p>';
+    updateInvestSummary(dispCurr); return;
+  }
+  investments.forEach(inv => {
+    const px         = inv.currentPrice;
+    const rate       = inv.exchangeRate ?? 1;
+    const nativeCurr = inv.nativeCurrency || dispCurr;
+    const sameCurr   = nativeCurr.toUpperCase() === dispCurr.toUpperCase()
+                       || (nativeCurr === 'GBp' && dispCurr.toUpperCase() === 'GBP' && rate === 0.01);
+
+    // All monetary values expressed in dispCurr
+    const pxDisp   = px !== null ? px * rate : null;
+    const val      = pxDisp !== null ? pxDisp * inv.quantity : null;
+    const cost     = inv.buyPrice > 0 ? inv.buyPrice * inv.quantity : null;  // buy price is always in dispCurr
+    const gain     = val !== null && cost !== null ? val - cost : null;
+    const gainPct  = gain !== null && cost > 0 ? (gain / cost * 100) : null;
+    const gClass   = gain === null ? 'gain-zero' : gain > 0 ? 'gain-pos' : gain < 0 ? 'gain-neg' : 'gain-zero';
+    const gSign    = gain !== null && gain > 0 ? '+' : '';
+    const ts       = inv.lastFetched ? inv.lastFetched.replace('T',' ').slice(0,16) : null;
+
+    // Price display block
+    let priceBlock;
+    if (px === null) {
+      priceBlock = `<span class="invest-price-na">—</span><span class="invest-price-label">price not set</span>`;
+    } else if (sameCurr || !inv.nativeCurrency) {
+      priceBlock = `<span class="invest-price">${fmtDec(px)}</span><span class="invest-price-label">${esc(dispCurr)} / unit</span>`;
+    } else {
+      priceBlock = `
+        <span class="invest-price">${fmtDec(pxDisp)}</span><span class="invest-price-label">${esc(dispCurr)} / unit</span>
+        <div style="font-size:11px;color:#aaa;margin-top:3px">${fmtDec(px)} ${esc(nativeCurr)} &nbsp;·&nbsp; rate 1&nbsp;${esc(nativeCurr)}&nbsp;=&nbsp;${fmtDec(rate)}&nbsp;${esc(dispCurr)}</div>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'invest-card';
+    card.innerHTML = `
+      <div class="invest-card-header">
+        <span class="invest-ticker">${esc(inv.ticker)}</span>
+        <span class="invest-name" title="Double-click to rename" ondblclick="startEditInvestName(this,${inv.id})">${esc(inv.name)}</span>
+        <button class="del-btn" onclick="deleteInvestment(${inv.id})" title="Remove">×</button>
+      </div>
+      <div class="invest-price-row" style="flex-wrap:wrap;flex-direction:column;align-items:flex-start;gap:0">
+        ${priceBlock}
+      </div>
+      <div class="invest-stats">
+        ${fmtQty(inv.quantity)} units${inv.buyPrice > 0 ? ` &nbsp;·&nbsp; buy ${fmtDec(inv.buyPrice)} ${esc(dispCurr)}` : ''}<br>
+        Value: <strong>${val !== null ? fmt(val)+' '+esc(dispCurr) : '—'}</strong>${cost !== null ? ` &nbsp;·&nbsp; Cost: ${fmt(cost)} ${esc(dispCurr)}` : ''}<br>
+        Gain/loss: <span class="${gClass}">${gain !== null ? gSign+fmt(gain)+' '+esc(dispCurr)+(gainPct !== null ? ' ('+gSign+gainPct.toFixed(1)+'%)' : '') : '—'}</span>
+      </div>
+      <div class="invest-actions">
+        <button class="btn-refresh" id="rbtn-${inv.id}" onclick="refreshPrice(${inv.id})">↻ Refresh</button>
+        <a class="invest-ext-link" href="https://finance.yahoo.com/quote/${encodeURIComponent(inv.ticker)}" target="_blank" rel="noopener">Yahoo ↗</a>
+        <a class="invest-ext-link" href="https://www.google.com/finance/quote/${encodeURIComponent(inv.ticker)}" target="_blank" rel="noopener">Google ↗</a>
+      </div>
+      <div class="invest-manual">
+        <input type="number" id="mpx-${inv.id}" placeholder="Set price (${esc(nativeCurr || dispCurr)})" min="0" step="0.01"
+          onkeydown="if(event.key==='Enter')setManualPrice(${inv.id})" />
+        <button onclick="setManualPrice(${inv.id})">Set</button>
+      </div>
+      ${ts ? `<div class="invest-updated">Updated: ${ts}${inv.lastFetched?.includes('manual')?' (manual)':''}</div>` : ''}
+    `;
+    grid.appendChild(card);
+  });
+  updateInvestSummary(dispCurr);
+}
+
+function updateInvestSummary(dispCurr) {
+  if (!dispCurr) dispCurr = currency || 'USD';
+  const priced    = investments.filter(i => i.currentPrice !== null);
+  const totalVal  = priced.reduce((s,i)  => s + i.currentPrice * (i.exchangeRate ?? 1) * i.quantity, 0);
+  const totalCost = investments.filter(i => i.buyPrice > 0)
+                               .reduce((s,i) => s + i.buyPrice * i.quantity, 0);  // buy price is always in dispCurr
+  const gain      = totalVal - totalCost;
+  const hasPrices = priced.length > 0;
+  const hasCost   = investments.some(i => i.buyPrice > 0);
+  const valEl  = document.getElementById('inv-total-val');
+  const costEl = document.getElementById('inv-total-cost');
+  const gainEl = document.getElementById('inv-total-gain');
+  const pctEl  = document.getElementById('inv-gain-pct');
+  if (valEl)  valEl.textContent  = hasPrices ? fmt(totalVal)+' '+dispCurr : '—';
+  if (costEl) costEl.textContent = hasCost   ? fmt(totalCost)+' '+dispCurr : '—';
+  if (gainEl) {
+    if (hasPrices && hasCost) {
+      const pct  = totalCost > 0 ? (gain / totalCost * 100).toFixed(1) : '0.0';
+      const sign = gain >= 0 ? '+' : '';
+      gainEl.textContent = sign+fmt(gain)+' '+dispCurr;
+      gainEl.style.color = gain > 0 ? '#1D9E75' : gain < 0 ? '#E24B4A' : '#aaa';
+      if (pctEl) pctEl.textContent = sign+pct+'% overall';
+    } else {
+      gainEl.textContent='—'; gainEl.style.color='#aaa';
+      if (pctEl) pctEl.textContent='';
+    }
+  }
+}
+
 // ─── Events ───────────────────────────────────────────────────────────────────
 document.getElementById('currency-input')  .addEventListener('change', e => setCurrency(e.target.value));
 document.getElementById('stable-input')    .addEventListener('change', e => setStableIncome(e.target.value));
@@ -1040,6 +1540,11 @@ document.getElementById('new-amt')   .addEventListener('keydown', e => { if(e.ke
 document.getElementById('nl-name')   .addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('nl-balance').focus(); });
 document.getElementById('nl-balance').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('nl-payment').focus(); });
 document.getElementById('nl-payment').addEventListener('keydown', e => { if(e.key==='Enter') addLoan(); });
+document.getElementById('ni-ticker').addEventListener('keydown',   e => { if(e.key==='Enter') document.getElementById('ni-name').focus(); });
+document.getElementById('ni-ticker').addEventListener('input',     e => { e.target.value = e.target.value.toUpperCase(); });
+document.getElementById('ni-name').addEventListener('keydown',     e => { if(e.key==='Enter') document.getElementById('ni-qty').focus(); });
+document.getElementById('ni-qty').addEventListener('keydown',      e => { if(e.key==='Enter') document.getElementById('ni-buyprice').focus(); });
+document.getElementById('ni-buyprice').addEventListener('keydown', e => { if(e.key==='Enter') addInvestment(); });
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 setMonthBadge();
